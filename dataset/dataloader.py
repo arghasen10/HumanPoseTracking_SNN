@@ -6,9 +6,6 @@ import sys
 
 sys.path.append("../")
 from dataset.dataloader_mmhpsd import MMHPSDataloader
-from dataset.dataloader_h36m import H36MDataloader
-from dataset.dataloader_amass import AMASSDataloader
-from dataset.dataloader_phspd import PHSPDataloader
 
 
 class EventDataloader(Dataset):
@@ -58,16 +55,7 @@ class EventDataloader(Dataset):
 
     def __getitem__(self, idx):
         dataset_name, action, frame_idx, set_idx = self.all_clips[idx]
-        if dataset_name == "mmhpsd":
-            return self.mmhpsd_dataloader[set_idx]
-        elif dataset_name == "h36m":
-            return self.h36m_dataloader[set_idx]
-        elif dataset_name == "amass":
-            return self.amass_dataloader[set_idx]
-        elif dataset_name == "phspd":
-            return self.phspd_dataloader[set_idx]
-        else:
-            raise ValueError("Dataset name {} unkonw.".format(dataset_name))
+        return self.mmhpsd_dataloader[set_idx]
 
     def obtain_all_clips(self):
         all_clips = []
@@ -101,48 +89,7 @@ class EventDataloader(Dataset):
             )
             all_clips += self.mmhpsd_dataloader.all_clips
 
-        if self.use_h36m:
-            self.h36m_dataloader = H36MDataloader(
-                data_dir=self.data_dir,
-                smpl_dir=self.smpl_dir,
-                mode=self.mode,
-                num_steps=self.num_steps,
-                max_gap=self.max_gap,
-                channel=self.channel,  # corresponds to frame
-                img_size=self.img_size,
-                modality=self.modality,
-                augmentation=self.aug,
-            )
-            all_clips += self.h36m_dataloader.all_clips
-
-        if self.use_amass and self.mode == "train":
-            self.amass_dataloader = AMASSDataloader(
-                data_dir=self.data_dir,
-                smpl_dir=self.smpl_dir,
-                mode=self.mode,
-                num_steps=self.num_steps,
-                max_gap=self.max_gap,
-                channel=self.channel,  # corresponds to frame
-                img_size=self.img_size,
-                modality=self.modality,
-                augmentation=self.aug,
-            )
-            all_clips += self.amass_dataloader.all_clips
-
-        if self.use_phspd and self.mode == "train":
-            self.phspd_dataloader = PHSPDataloader(
-                data_dir=self.data_dir,
-                smpl_dir=self.smpl_dir,
-                mode=self.mode,
-                num_steps=self.num_steps,
-                max_gap=self.max_gap,
-                channel=self.channel,  # corresponds to frame
-                img_size=self.img_size,
-                modality=self.modality,
-                augmentation=self.aug,
-            )
-            all_clips += self.phspd_dataloader.all_clips
-
+        
         print("[in total {}] {} samples".format(self.mode, len(all_clips)))
         return all_clips
 

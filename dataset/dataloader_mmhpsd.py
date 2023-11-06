@@ -8,7 +8,6 @@ import sys
 
 sys.path.append("../")
 from utils.SMPL import SMPL
-from dataset.util import projection_np
 from dataset.data_transforms import (
     get_aug_config,
     generate_patch_image,
@@ -356,104 +355,6 @@ class MMHPSDataloader(Dataset):
         print("[mmphspd {}] {} samples".format(self.mode, len(all_clips)))
         return all_clips
 
-    def visualize(self, idx, save_dir):
-        assert self.modality == "all"
-        sample = self.__getitem__(idx)
-        dataset_name, action, frame_idx, gap = sample["info"]
-        print(action, frame_idx, gap)
-
-        # import smplx
-        # device = torch.device("cpu")
-        # smplmodel = smplx.create("../../smpl_model/models/", model_type="smpl",
-        #                          gender="male", ext="pkl", batch_size=self.num_steps+1).to(device)
-        # with torch.no_grad():
-        #     outputp = smplmodel(betas=sample['beta'].to(device),
-        #                         global_orient=sample['theta'][:, :3].to(device),
-        #                         body_pose=sample['theta'][:, 3:].to(device),
-        #                         transl=sample['trans'][:, 0, :].to(device),
-        #                         return_verts=True)
-        # verts = outputp.vertices.detach().cpu().numpy()  # [T+1, 6890, 3] w/ trans
-        # joints3d = outputp.joints.detach().cpu().numpy()[:, 0:24, :]
-
-        with torch.no_grad():
-            verts, joints3d, _ = self.smplmodel(
-                beta=sample["beta"].to(self.device),
-                theta=sample["theta"].to(self.device),
-                get_skin=True,
-            )
-        trans = sample["trans"].cpu().numpy()
-        verts = verts.detach().cpu().numpy() + trans
-        # joints3d = joints3d.detach().cpu().numpy() + trans
-
-        joints2d = sample["joints2d"].cpu().numpy() * self.img_size  # [T+1, 24, 2]
-        joints3d = sample["joints3d"].cpu().numpy()  # [T+1, 24, 3]
-        events = np.transpose(
-            sample["events"].cpu().numpy(), [0, 2, 3, 1]
-        )  # [T, H, W, C]
-        imgs = np.transpose(
-            sample["imgs"].cpu().numpy(), [0, 2, 3, 1]
-        )  # [T+1, H, W, C]
-
-        from dataset.util import render_model
-
-        frames = []
-        for t in range(self.num_steps):
-            img = (imgs[t] * 255).astype(np.uint8)
-
-            render_img = (
-                render_model(
-                    verts[t],
-                    self.smplmodel.faces,
-                    self.img_size,
-                    self.img_size,
-                    np.asarray(self.cam_intr[0:4]),
-                    np.zeros([3]),
-                    np.zeros([3]),
-                    near=0.1,
-                    far=20,
-                    img=img,
-                )[:, :, 0:3]
-                * 255
-            ).astype(np.uint8)
-
-            # for i in range(self.channel):
-            #     events_frame = np.zeros([self.img_size, self.img_size, 3], dtype=np.uint8) + 255
-            #     events_frame[events[t, :, :, i] > 0, :] = np.array([87, 148, 191], dtype=np.uint8)
-            #     frame = np.concatenate([img, events_frame, render_img], axis=1)
-            #     frames.append(frame)
-
-            img_joints2d = img.copy()
-            for point in joints2d[t]:
-                cv2.circle(
-                    img_joints2d, (int(point[0]), int(point[1])), 1, (255, 0, 0), -1
-                )
-
-            img_joints3d = img.copy()
-            proj_joints2d = projection_np(joints3d[t], self.cam_intr, True)
-            for point in proj_joints2d:
-                cv2.circle(
-                    img_joints3d, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1
-                )
-
-            # print('joints2d error', np.max(np.sqrt(np.sum((joints2d[t] - proj_joints2d[:, 0:2])**2, axis=-1))))
-
-            events_frame = (
-                np.zeros([self.img_size, self.img_size, 3], dtype=np.uint8) + 255
-            )
-            events_frame[np.sum(events[t], axis=-1) > 0, :] = np.array(
-                [87, 148, 191], dtype=np.uint8
-            )
-            frame = np.concatenate(
-                [img, events_frame, render_img, img_joints2d, img_joints3d], axis=1
-            )
-            frames.append(frame)
-
-        import imageio
-
-        demo_name = "{}/mmhpsd_{}_{:04d}.gif".format(save_dir, action, frame_idx)
-        imageio.mimsave(demo_name, frames, "GIF", duration=gap * 1.0 / 15.0)
-        print("save as {}".format(demo_name))
-
 
 if __name__ == "__main__":
     os.environ["OMP_NUM_THREADS"] = "1"
@@ -469,4 +370,3 @@ if __name__ == "__main__":
         augmentation=False,
         use_synthesis=False,
     )
-    data_train.visualize(666, "../data")

@@ -17,7 +17,6 @@ from utils.loss_funcs import (
     compute_pelvis_mpjpe,
 )
 
-from utils.visualize_test_example import visualize_events_motion_test
 import collections
 
 from model_snn.spiking_model import SpikePoseNet
@@ -157,51 +156,6 @@ def test(args):
                         attention_score=score,
                     )
 
-            if args.save_vis:
-                # collect data to save as npz
-                gt_data = [
-                    data["theta"].cpu().numpy(),
-                    data["beta"].cpu().numpy(),
-                    data["trans"].cpu().numpy(),
-                    data["joints3d"].cpu().numpy(),
-                    data["verts"].cpu().numpy(),
-                ]
-                pred_data = [
-                    out["pred_rotmats"].detach().cpu().numpy(),
-                    out["beta"].detach().cpu().numpy(),
-                    out["trans"].detach().cpu().numpy(),
-                    out["joints3d"].detach().cpu().numpy(),
-                    out["verts"].detach().cpu().numpy(),
-                ]
-
-                # align verts before render and visualize
-                pred_joints3d = out["joints3d"].detach()  # [B, T, 24, 3]
-                target_joints3d = data["joints3d"].detach()  # [B, T, 24, 3]
-                left_heap_idx, right_heap_idx = 1, 2
-                pred_pel = (
-                    pred_joints3d[:, :, left_heap_idx : left_heap_idx + 1, :]
-                    + pred_joints3d[:, :, right_heap_idx : right_heap_idx + 1, :]
-                ) / 2
-                target_pel = (
-                    target_joints3d[:, :, left_heap_idx : left_heap_idx + 1, :]
-                    + target_joints3d[:, :, right_heap_idx : right_heap_idx + 1, :]
-                ) / 2
-                pred_verts = out["verts"]
-                pred_verts = pred_verts - pred_pel + target_pel
-
-                visualize_events_motion_test(
-                    data["imgs"],
-                    data["events"],
-                    data["verts"],
-                    pred_verts,
-                    out["faces"],
-                    out["cam_intr"],
-                    data["info"],
-                    args.output_dir,
-                    gt_data=gt_data,
-                    pred_data=pred_data,
-                    save_npz=True,
-                )
 
             # collect results
             results["scalar/trans"].append(loss_dict["trans"].detach())
