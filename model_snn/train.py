@@ -16,7 +16,7 @@ from utils.loss_funcs import (
     compute_pa_mpjpe,
     compute_pelvis_mpjpe,
 )
-from visualization.visualize_test_example import visualize_events_motion
+#from visualization.visualize_test_example import visualize_events_motion
 import collections
 
 # from thop import profile, clever_format
@@ -476,7 +476,7 @@ def get_args():
         "--device", default="cuda", help="device to use for training / testing"
     )
     parser.add_argument("--visible_gpus", type=str, default="2,3")
-    parser.add_argument("--data_dir", type=str, default="/home/shihao/data")
+    parser.add_argument("--data_dir", type=str, default="/home/argha/sample_data")
     parser.add_argument(
         "--output_dir", type=str, default="/data/shihao/exp_eventformer"
     )
@@ -484,7 +484,7 @@ def get_args():
     parser.add_argument(
         "--smpl_dir",
         type=str,
-        default="../smpl_model/models/smpl/SMPL_MALE.pkl",
+        default="/home/argha/smpl_model/smpl/models/SMPL_MALE.pkl",
     )
     parser.add_argument("--num_worker", type=int, default=4)
     parser.add_argument("--pin_memory", type=int, default=0)
@@ -573,7 +573,7 @@ def main():
     # https://discuss.pytorch.org/t/distributed-data-parallel-freezes-without-error-message/8009/27
     os.environ["NCCL_P2P_DISABLE"] = "1"
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.visible_gpus
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     torch.set_num_threads(1)
 
     # train

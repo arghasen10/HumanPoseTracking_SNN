@@ -39,7 +39,7 @@ def test(args):
         max_gap=args.max_gap,
         channel=args.channel,  # corresponds to frame
         img_size=args.img_size,
-        modality="all",
+        modality="events",
         augmentation=False,
         use_mmhpsd=args.use_mmhpsd,
         use_mmhpsd_synthesis=args.use_mmhpsd_synthesis,

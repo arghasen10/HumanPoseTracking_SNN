@@ -10,14 +10,14 @@ cp -r ./* "$LOG_OUTDIR/code"
 # nohup python -u -m torch.distributed.launch --nproc_per_node=1 --master_port 56565 test.py \
 nohup python -u test.py \
     --visible_gpus         "0" \
-    --data_dir             "/home/shihao/data" \
+    --data_dir             "/home/argha/sample_data" \
     --output_dir           "$LOG_OUTDIR" \
-    --model_dir            "../data/pretrained_model/model_snn_64steps.pth" \
-    --save_vis             1 \
+    --model_dir            "/home/argha/github/HumanPoseTracking_SNN/data/pretrained_model/model_snn_8steps.pth" \
+    --save_vis             0 \
     --save_attention_map   0 \
-    --smpl_dir             "../smpl_model/models/smpl/SMPL_MALE.pkl" \
+    --smpl_dir             "/home/argha/smpl_model/smpl/models/SMPL_MALE.pkl" \
     --channel              4 \
-    --num_frames           64 \
+    --num_frames           8 \
     --img_size             256 \
     --max_gap              4 \
     --use_mmhpsd           1 \
