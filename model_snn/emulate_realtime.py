@@ -2,9 +2,8 @@ import torch
 from spikingjelly.activation_based import neuron, functional
 import os
 import numpy as np
-from collections import deque
+#import random
 from metavision_core.event_io import EventsIterator
-from metavision_core.event_io.raw_reader import initiate_device
 from numpy.lib.recfunctions import structured_to_unstructured
 from torchvision.transforms import Resize
 import time
@@ -34,7 +33,7 @@ def process_events(events, height, width):
         feats,
         (T, quantized_h, quantized_w, C),
     )
-    sparse_tensor = sparse_tensor.coalesce().to_dense()
+    sparse_tensor = sparse_tensor.coalesce().to(torch.bool).to_dense()   #permute(0,3,1,2)
     return sparse_tensor
 
 
@@ -85,35 +84,38 @@ def test(startime,num_frames=8, model_dir="/media/dulanga/miniconda/pretrained_m
     print('Model load time: ', (time.time()-startime))
     startime = time.time()
     device = torch.device("cuda")
-    cam_device = initiate_device("")
-    mv_iterator = EventsIterator.from_device(device=cam_device) 
-    max_samples = 8
-    samples_deque = deque(maxlen=max_samples)
+    mv_iterator = EventsIterator(input_path="/home/dulanga/Downloads/openeb/sdk/modules/core/python/samples/metavision_simple_recorder/recording_231120_071008.raw", 
+                                 delta_t=10000, start_ts=0, max_duration=1e4 * 60)
     height, width = mv_iterator.get_size()
     samples = []
     for evs in mv_iterator:
         sparse_tensor =  process_events(evs, height, width)         #T,H,W,C
-        samples_deque.append(sparse_tensor)
-        evs_count = evs.shape[0]
-        if len(samples_deque) == max_samples:
-            samples = torch.stack(list(samples_deque))  # B, T, H, W, C
-            samples = samples.permute(0, 1, 4, 2, 3)
-            samples = Resize((256, 256)).forward(samples.flatten(0, 1)).view(*samples.shape[:3], 256, 256)
+        samples.append(sparse_tensor)
+    
+    samples = torch.stack(samples[:8])          #B,T,H,W,C
+    #print(samples.shape)
+    #print(samples)
+    samples = samples.permute(0,1,4,2,3)
+    samples = Resize((256,256)).forward(samples.flatten(0,1)).view(*samples.shape[:3],256,256)
 
-            print("------------------------------------- test -----------------------------------------")
-            model.eval()
-            print('Camera Setup time', (time.time()-startime))
-            samples = samples.float().to(device)
-            with torch.set_grad_enabled(False):
-                startime = time.time()
-                for i in range(10):
-                    out = model(samples)  # [B, T, C, H, W]
-                    functional.reset_net(model)
-                    curr_time = time.time()
-                    gap=curr_time - startime
-                    print('Inference Latency: ', gap)
-                    print('Throughput: ', 8*evs.shape[0]/gap)
-                    startime = curr_time
+    print(
+        "------------------------------------- test -----------------------------------------"
+    )
+    model.eval()
+    # deactivate autograd to reduce memory usage
+    print('Data load time', (time.time()-startime))
+    #startime=time.time()
+    samples=samples.float().to(device)
+    with torch.set_grad_enabled(False):
+        startime=time.time()
+        for i in range(10):
+            out = model(samples)  # [B, T, C, H, W]
+            functional.reset_net(model)
+            #print(out)
+            curr_time = time.time()
+            print('Inference Latency: ', curr_time-startime)
+            startime=curr_time
+
 
 def main():
     #seed = 666
