@@ -24,15 +24,15 @@ nohup python -u -m torch.distributed.launch --nproc_per_node=1 --master_port 565
     --use_phspd            0 \
     --use_geodesic_loss    1 \
     --use_amp              0 \
-    --backbone             "sew_resnet34" \
+    --backbone             "sew_resnet18" \
     --neuron               "ParametricLIFNode" \
     --surrogate            "ATan" \
     --cnf                  "ADD" \
     --detach_reset         0 \
     --hard_reset           0 \
     --drop_prob            0.1 \
-    --n_layers             2 \
-    --n_head               1 \
+    --n_layers             0 \
+    --n_head               0 \
     --d_hidden             1024 \
     --use_rnn              0 \
     --use_recursive        0 \
@@ -42,8 +42,8 @@ nohup python -u -m torch.distributed.launch --nproc_per_node=1 --master_port 565
     --beta_loss            1 \
     --joints3d_loss        1 \
     --joints2d_loss        10 \
-    --batch_size           8 \
-    --epochs               25 \
+    --batch_size           1 \
+    --epochs               200 \
     --lr_scheduler         "CosineAnnealingLR" \
     --lr                   0.01 \
     --lr_regressor         0.0001 \

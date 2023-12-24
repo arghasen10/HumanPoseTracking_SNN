@@ -12,7 +12,7 @@ nohup python -u test.py \
     --visible_gpus         "0" \
     --data_dir             "/home/argha/sample_data" \
     --output_dir           "$LOG_OUTDIR" \
-    --model_dir            "/home/argha/github/HumanPoseTracking_SNN/data/pretrained_model/model_snn_8steps.pth" \
+    --model_dir            "/home/argha/github/HumanPoseTracking_SNN/data/log/12-24_17-39-47/model_snn.pth" \
     --save_vis             0 \
     --save_attention_map   0 \
     --smpl_dir             "/home/argha/smpl_model/smpl/models/SMPL_MALE.pkl" \
@@ -27,15 +27,15 @@ nohup python -u test.py \
     --use_phspd            0 \
     --use_geodesic_loss    1 \
     --use_amp              0 \
-    --backbone             "sew_resnet34" \
+    --backbone             "sew_resnet18" \
     --neuron               "ParametricLIFNode" \
     --surrogate            "ATan" \
     --cnf                  "ADD" \
     --detach_reset         0 \
     --hard_reset           0 \
     --drop_prob            0.1 \
-    --n_layers             2 \
-    --n_head               1 \
+    --n_layers             0 \
+    --n_head               0 \
     --d_hidden             1024 \
     --use_rnn              0 \
     --use_recursive        0 \
@@ -45,7 +45,7 @@ nohup python -u test.py \
     --beta_loss            1 \
     --joints3d_loss        1 \
     --joints2d_loss        10 \
-    --batch_size           8 \
+    --batch_size           1 \
     --epochs               20 \
     --lr_scheduler         "CosineAnnealingLR" \
     --lr                   0.01 \

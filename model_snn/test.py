@@ -19,7 +19,7 @@ from utils.loss_funcs import (
 
 import collections
 
-from model_snn.spiking_model import SpikePoseNet
+from model_snn.spiking_model2 import SpikePoseNet
 from model_snn import misc
 
 

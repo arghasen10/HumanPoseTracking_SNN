@@ -21,7 +21,7 @@ import collections
 
 # from thop import profile, clever_format
 
-from model_snn.spiking_model import SpikePoseNet
+from model_snn.spiking_model2 import SpikePoseNet
 from model_snn import misc
 
 
@@ -542,7 +542,7 @@ def get_args():
         "--dist_url", default="env://", help="url used to set up distributed training"
     )
     parser.add_argument(
-        "--local_rank", default=-1, type=int, help="node rank for distributed training"
+        "--local-rank", default=-1, type=int, help="node rank for distributed training"
     )
 
     args = parser.parse_args()

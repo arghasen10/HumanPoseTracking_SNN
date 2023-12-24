@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models._utils import IntermediateLayerGetter
 from spikingjelly.activation_based import (
     surrogate,
     neuron,
@@ -10,7 +9,7 @@ from spikingjelly.activation_based import (
     layer,
     rnn,
 )
-from spikingjelly.activation_based.model import sew_resnet
+from spikingjelly.activation_based.model import sew_mobilenet
 
 import sys
 
@@ -19,54 +18,44 @@ from utils.SMPL import SMPL
 from utils.geometry import projection_torch, rot6d_to_rotmat
 
 
-class Backbone(nn.Module):
-    """ResNet backbone with frozen BatchNorm."""
+class MobileNet_Backbone(nn.Module):
+    """MobileNet backbone with frozen BatchNorm."""
 
     def __init__(
         self,
-        name="sew_resnet34",
+        name="MobileNet",
         return_interm_layers=False,
-        input_channel=1,
+        input_channel=3,  # Change this based on the input channels of MobileNet
         spiking_neuron=neuron.ParametricLIFNode,
-        surrogate_function=surrogate.ATan(),
-        detach_reset=True,
-        v_reset=None,
-        cnf="ADD",
+        **mobilenet_kwargs,  # Pass any additional MobileNet arguments here
     ):
         super().__init__()
         print("[backbone] {}".format(name))
-        backbone = getattr(sew_resnet, name)(
-            replace_stride_with_dilation=None,
-            pretrained=False,
-            norm_layer=None,
-            zero_init_residual=True,
-            spiking_neuron=spiking_neuron,
-            surrogate_function=surrogate_function,
-            detach_reset=detach_reset,
-            v_reset=v_reset,
-            cnf=cnf,
-        )
-        backbone.conv1 = layer.Conv2d(
-            input_channel, 64, kernel_size=7, stride=2, padding=3, bias=False
-        )
-        backbone.fc = nn.Sequential()
-        self.num_channels = 512 if name in ("sew_resnet18", "sew_resnet34") else 2048
 
-        if return_interm_layers:
-            return_layers = {
-                "layer1": "layer1",
-                "layer2": "layer2",
-                "layer3": "layer3",
-                "layer4": "layer4",
-            }
-        else:
-            return_layers = {"layer4": "layer4"}
-        self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        # Creating an instance of MobileNet and configuring its parameters
+        self.body = sew_mobilenet.SEWMobileNet(
+            spiking_neuron=spiking_neuron,
+            **mobilenet_kwargs,  # Pass any additional arguments here
+        )
+
+        self.num_channels = 512  # Modify based on the MobileNet output channels
+
+        # Define the return layers based on the MobileNet architecture
+        # if return_interm_layers:
+        #     return_layers = {
+        #         "layer1": self.body.features[0][:4],
+        #         "layer2": "layer2",
+        #         # Add other intermediate layers if needed
+        #     }
+        # else:
+        #     return_layers = {"layer4": "layer4"}  # Assuming output from last layer
+
+        # # Using IntermediateLayerGetter to return specified layers
+        # self.body = IntermediateLayerGetter(self.body, return_layers=return_layers)
 
     def forward(self, x):
         xs = self.body(x)
         return xs
-
 
 class Regressor(nn.Module):
     def __init__(self, channel=384, pose_dim=24 * 6):
@@ -134,7 +123,7 @@ class SpikePoseNet(nn.Module):
         self,
         num_frames=64,
         channel=4,
-        model_name="sew_resnet34",
+        model_name="mobilenet",
         return_interm_layers=True,
         use_tc=False,  # if true, reshape events [B, T, C, H, W] (t=T) to [B, T*C, 1, H, W] (t=T*C)
         spiking_neuron="ParametricLIFNode",
@@ -146,7 +135,7 @@ class SpikePoseNet(nn.Module):
         v_reset=None,
         cam_intr=None,
         img_size=256,
-        smpl_dir="../smpl_model/models/smpl/SMPL_MALE.pkl",
+        smpl_dir="/home/argha/smpl_model/smpl/models/SMPL_MALE.pkl",
         batch_size=8,
         d_hidden=1024,
         pose_dim=24 * 6,
@@ -163,7 +152,7 @@ class SpikePoseNet(nn.Module):
 
         # v_reset=None means soft_reset: substract v_threshold after spiking
         # v_reset=0.0 means hard_reset: reset to 0 after spiking
-        self.backbone = Backbone(
+        self.backbone = MobileNet_Backbone(
             name=model_name,
             return_interm_layers=return_interm_layers,
             input_channel=1 if use_tc else channel,
@@ -202,12 +191,7 @@ class SpikePoseNet(nn.Module):
         # events: [B, T, C, H, W] -> [T, B, C, H, W]
         input = events.permute(1, 0, 2, 3, 4)
         layer_spiking_rates = {"input": torch.mean((input != 0).float())}
-
         x = self.backbone(input)
-        for name, feat in x.items():
-            layer_spiking_rates[name] = torch.mean((feat.detach() != 0).float())
-
-        x = x["layer4"]  # [T, B, C, H/32, W/32]
 
         if self.use_transformer:
             x = x.permute(0, 1, 3, 4, 2)  # [T, B, H, W, C]
@@ -269,7 +253,7 @@ if __name__ == "__main__":
     model = SpikePoseNet(
         num_frames=num_frames,
         channel=4,
-        model_name="sew_resnet34",
+        model_name="mobilenet",
         return_interm_layers=True,
         use_tc=False,  # if true, reshape events [B, T, C, H, W] (t=T) to [B, T*C, 1, H, W] (t=T*C)
         spiking_neuron="ParametricLIFNode",
@@ -303,6 +287,7 @@ if __name__ == "__main__":
     _x = (torch.rand([batch_size, num_frames, 4, 256, 256]) > 0.7).to(
         device=device, dtype=torch.float32
     )
+    
     output = model(_x)
     for k, v in output.items():
         try:
