@@ -38,7 +38,7 @@ class MobileNet_Backbone(nn.Module):
             **mobilenet_kwargs,  # Pass any additional arguments here
         )
 
-        self.num_channels = 512  # Modify based on the MobileNet output channels
+        self.num_channels = 64  # Modify based on the MobileNet output channels
 
         # Define the return layers based on the MobileNet architecture
         # if return_interm_layers:
@@ -77,8 +77,8 @@ class TransformerEncoder(nn.Module):
     def __init__(
         self,
         n_layers=2,
-        input_size=512,
-        d_hidden=512 * 2,
+        input_size=64,
+        d_hidden=64 * 2,
         n_head=8,
         drop_prob=0.1,
         spiking_neuron="ParametricLIFNode",
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         cnf="ADD",
         drop_prob=0.1,
         n_layers=2,
-        d_hidden=1024,
+        d_hidden=128,
         detach_reset=True,  # detach backward on reset path of neuron
         v_reset=None,  # None means soft reset
         cam_intr=None,

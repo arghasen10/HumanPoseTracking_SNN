@@ -181,11 +181,11 @@ class FeedForwardNet(nn.Module):
             detach_reset=detach_reset,
             v_reset=v_reset,
         )
-
-        self.dropout2 = layer.Dropout(p=drop_prob)
-        self.linear2 = layer.Linear(ffn_hidden, d_model, bias=False)
-        self.bn2 = layer.BatchNorm2d(d_model)
-        self.sn2 = getattr(neuron, spiking_neuron)(
+        
+        # Updated code to reduce the channel size
+        self.reduce_channel = layer.Linear(ffn_hidden, ffn_hidden // 2, bias=False)
+        self.bn_reduce = layer.BatchNorm2d(ffn_hidden // 2)
+        self.sn_reduce = getattr(neuron, spiking_neuron)(
             surrogate_function=getattr(surrogate, surrogate_function)(),
             detach_reset=detach_reset,
             v_reset=v_reset,
@@ -205,13 +205,10 @@ class FeedForwardNet(nn.Module):
         # [T, B, H, W, C] -> [T, B, C, H, W]
         x = self.bn1(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
         x = self.sn1(x)
-
-        x = self.dropout2(x)
-        x = self.linear2(x)
-        # [T, B, H, W, C] -> [T, B, C, H, W]
-        x = self.bn2(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-        # print("zero initilization", torch.sum((x != 0).float()))
-        x = self.sn2(x)
+        # Reduce channel size
+        x = self.reduce_channel(x)
+        x = self.bn_reduce(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
+        x = self.sn_reduce(x)
         return x
 
 
@@ -258,7 +255,7 @@ class TranformerEncoderLayer(nn.Module):
                 nn.init.constant_(m.bn_out.weight, 0)
             if isinstance(m, FeedForwardNet):
                 # nn.init.constant_(m.ffn.linear2.weight, 0)
-                nn.init.constant_(m.bn2.weight, 0)
+                nn.init.constant_(m.bn1.weight, 0)
 
     @staticmethod
     def sew_function(x: torch.Tensor, y: torch.Tensor, cnf: str):
@@ -339,7 +336,7 @@ class PositionEmbeddingSine(nn.Module):
 if __name__ == "__main__":
     device = torch.device("cpu")
 
-    B, T, H, W, C = 1, 16, 8, 8, 128
+    B, T, H, W, C = 1, 16, 8, 8, 64
     x = (torch.rand(T, B, H, W, C) > 0.8).float()
     model = TranformerEncoderLayer(
         d_model=C,
@@ -356,11 +353,11 @@ if __name__ == "__main__":
     functional.set_step_mode(model, "m")
     print("input firing rate", torch.mean((x > 0).float()))
     out = model(x)  # [T, B, H, W, C]
-    print(out.shape)
-    print("out firing rate", torch.mean((out > 0).float()))
+    print(out[0].shape)
+    print("out firing rate", torch.mean((out[0] > 0).float()))
     print(
         "backbone output (check spikes)",
-        torch.sum((out != 0) & (out != 1) & (out != 2)),
+        torch.sum((out[0] != 0) & (out[0] != 1) & (out[0] != 2)),
     )
 
     # for n, p in model.named_parameters():

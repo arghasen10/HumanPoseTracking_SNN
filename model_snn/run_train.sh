@@ -33,7 +33,7 @@ nohup python -u -m torch.distributed.launch --nproc_per_node=1 --master_port 565
     --drop_prob            0.1 \
     --n_layers             0 \
     --n_head               0 \
-    --d_hidden             1024 \
+    --d_hidden             128 \
     --use_rnn              0 \
     --use_recursive        0 \
     --use_transformer      1 \
